@@ -10,11 +10,19 @@ export default function Home() {
   const [inputActiveDuration, setInputActiveDuration] = useState(200)
   const [frequency, setFrequency] = useState(440) // Set frequency here
   const [inputFrequency, setInputFrequency] = useState(440)
+  const [audioCtx, setAudioCtx] = useState(null)
+
+  useEffect(() => {
+    // @ts-ignore
+    const AudioContext = window.AudioContext || window.webkitAudioContext
+    // @ts-ignore
+    setAudioCtx(new AudioContext())
+  }, [])
 
   // Initialize AudioContext
   // @ts-ignore
-  const AudioContext = window.AudioContext || window.webkitAudioContext
-  const audioCtx = new AudioContext()
+  // const AudioContext = window.AudioContext || window.webkitAudioContext
+  // const audioCtx = new AudioContext()
 
   const oscillatorRef = useRef(null)
 
@@ -28,9 +36,11 @@ export default function Home() {
     if (isRunning && oscillatorRef.current) {
       // @ts-ignore
       oscillatorRef.current.stop()
+      // @ts-ignore
       const oscillator = audioCtx.createOscillator()
       oscillator.type = "sine"
       oscillator.frequency.value = inputFrequency // set new frequency
+      // @ts-ignore
       oscillator.connect(audioCtx.destination)
       oscillator.start()
       // @ts-ignore
@@ -45,9 +55,11 @@ export default function Home() {
       interval = setInterval(() => {
         setBackgroundColor("white")
         // create and connect a new oscillator each time
+        // @ts-ignore
         const oscillator = audioCtx.createOscillator()
         oscillator.type = "sine"
         oscillator.frequency.value = frequency // frequency of the sound
+        // @ts-ignore
         oscillator.connect(audioCtx.destination)
         oscillator.start()
         // @ts-ignore
