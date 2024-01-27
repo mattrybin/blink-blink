@@ -12,12 +12,26 @@ export default function Home() {
   const [inputFrequency, setInputFrequency] = useState(440)
   const [audioCtx, setAudioCtx] = useState(null)
 
-  useEffect(() => {
-    // @ts-ignore
-    const AudioContext = window.AudioContext || window.webkitAudioContext
-    // @ts-ignore
-    setAudioCtx(new AudioContext())
-  }, [])
+  const startApp = () => {
+    // Create the AudioContext after a user interaction
+    if (!audioCtx) {
+      // @ts-ignore
+      const AudioContext = window.AudioContext || window.webkitAudioContext
+      const newAudioCtx = new AudioContext()
+      // @ts-ignore
+      setAudioCtx(newAudioCtx)
+    }
+
+    // Toggle isRunning between true and false
+    setIsRunning((prevIsRunning) => !prevIsRunning)
+  }
+
+  // useEffect(() => {
+  //   // @ts-ignore
+  //   const AudioContext = window.AudioContext || window.webkitAudioContext
+  //   // @ts-ignore
+  //   setAudioCtx(new AudioContext())
+  // }, [])
 
   // Initialize AudioContext
   // @ts-ignore
@@ -51,7 +65,7 @@ export default function Home() {
   useEffect(() => {
     let interval: any = null
 
-    if (isRunning) {
+    if (isRunning && audioCtx) {
       interval = setInterval(() => {
         setBackgroundColor("white")
         // create and connect a new oscillator each time
@@ -96,8 +110,16 @@ export default function Home() {
         oscillatorRef.current = null // clear the ref
       }
     }
-  }, [isRunning, intervalDuration, activeDuration, frequency])
+  }, [isRunning, audioCtx, intervalDuration, activeDuration, frequency])
 
+  useEffect(() => {
+    return () => {
+      if (audioCtx) {
+        // @ts-ignore
+        audioCtx.close()
+      }
+    }
+  }, [])
   return (
     <main
       className="flex min-h-screen flex-col items-center justify-center p-24 gap-4"
@@ -105,7 +127,7 @@ export default function Home() {
     >
       <button
         className={`btn ${!isRunning ? "btn-warning" : "btn-error"}`}
-        onClick={() => setIsRunning(!isRunning)}
+        onClick={startApp}
       >
         {isRunning ? "Stop" : "Start"}
       </button>
