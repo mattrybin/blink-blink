@@ -1,113 +1,160 @@
-import Image from "next/image";
+"use client"
+import { useState, useEffect, useRef } from "react"
 
 export default function Home() {
+  const [isRunning, setIsRunning] = useState(false)
+  const [backgroundColor, setBackgroundColor] = useState("initial")
+  const [intervalDuration, setIntervalDuration] = useState(2000)
+  const [activeDuration, setActiveDuration] = useState(200)
+  const [inputIntervalDuration, setInputIntervalDuration] = useState(2000)
+  const [inputActiveDuration, setInputActiveDuration] = useState(200)
+  const [frequency, setFrequency] = useState(440) // Set frequency here
+  const [inputFrequency, setInputFrequency] = useState(440)
+
+  // Initialize AudioContext
+  // @ts-ignore
+  const AudioContext = window.AudioContext || window.webkitAudioContext
+  const audioCtx = new AudioContext()
+
+  const oscillatorRef = useRef(null)
+
+  const updateTimeAndFrequency = () => {
+    setIntervalDuration(inputIntervalDuration)
+    setActiveDuration(inputActiveDuration)
+    setFrequency(inputFrequency)
+    setIsRunning(false)
+
+    // Stop the old oscillator and start a new one with the new frequency
+    if (isRunning && oscillatorRef.current) {
+      // @ts-ignore
+      oscillatorRef.current.stop()
+      const oscillator = audioCtx.createOscillator()
+      oscillator.type = "sine"
+      oscillator.frequency.value = inputFrequency // set new frequency
+      oscillator.connect(audioCtx.destination)
+      oscillator.start()
+      // @ts-ignore
+      oscillatorRef.current = oscillator // assign to ref so it can be stopped later
+    }
+  }
+
+  useEffect(() => {
+    let interval: any = null
+
+    if (isRunning) {
+      interval = setInterval(() => {
+        setBackgroundColor("white")
+        // create and connect a new oscillator each time
+        const oscillator = audioCtx.createOscillator()
+        oscillator.type = "sine"
+        oscillator.frequency.value = frequency // frequency of the sound
+        oscillator.connect(audioCtx.destination)
+        oscillator.start()
+        // @ts-ignore
+        oscillatorRef.current = oscillator // assign to ref so it can be stopped later
+
+        setTimeout(() => {
+          setBackgroundColor("initial")
+          oscillator.stop()
+        }, activeDuration)
+      }, intervalDuration)
+    } else {
+      if (interval !== null) {
+        clearInterval(interval)
+        setBackgroundColor("initial")
+        // Stop the oscillator when it's not running
+        if (oscillatorRef.current) {
+          // @ts-ignore
+          oscillatorRef.current.stop()
+          oscillatorRef.current = null // clear the ref
+        }
+        interval = null
+      }
+    }
+
+    // Clear interval on unmount
+    return () => {
+      if (interval !== null) {
+        clearInterval(interval)
+      }
+      // Stop the oscillator on unmount
+      if (oscillatorRef.current) {
+        // @ts-ignore
+        oscillatorRef.current.stop()
+        oscillatorRef.current = null // clear the ref
+      }
+    }
+  }, [isRunning, intervalDuration, activeDuration, frequency])
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
+    <main
+      className="flex min-h-screen flex-col items-center justify-center p-24 gap-4"
+      style={{ backgroundColor: backgroundColor }}
+    >
+      <button
+        className={`btn ${!isRunning ? "btn-warning" : "btn-error"}`}
+        onClick={() => setIsRunning(!isRunning)}
+      >
+        {isRunning ? "Stop" : "Start"}
+      </button>
+      <div className="grid gap-4">
+        <label className="form-control w-full max-w-xs">
+          <div className="label">
+            <span className="label-text">Time between blinks</span>
+          </div>
+          <input
+            className="input"
+            type="number"
+            value={inputIntervalDuration}
+            onChange={(e: any) => setInputIntervalDuration(e.target.value)}
+          />
+          <div className="label">
+            <span className="label-text-alt"></span>
+            <span className="label-text-alt">In milliseconds</span>
+          </div>
+        </label>
+        <label className="form-control w-full max-w-xs">
+          <div className="label">
+            <span className="label-text">Length of blink and sound</span>
+          </div>
+          <input
+            className="input"
+            type="number"
+            value={inputActiveDuration}
+            onChange={(e: any) => setInputActiveDuration(e.target.value)}
+          />
+          <div className="label">
+            <span className="label-text-alt"></span>
+            <span className="label-text-alt">In milliseconds</span>
+          </div>
+        </label>
+        <label className="form-control w-full max-w-xs">
+          <div className="label">
+            <span className="label-text">Sound Frequency</span>
+          </div>
+          <input
+            className="input"
+            type="number"
+            value={inputFrequency}
+            onChange={(e: any) => setInputFrequency(e.target.value)}
+          />
+          <div className="label">
+            <span className="label-text-alt"></span>
+            <span className="label-text-alt">in hertz (Hz)</span>
+          </div>
+        </label>
+        <button
+          className="btn"
+          onClick={updateTimeAndFrequency}
+          disabled={
+            inputIntervalDuration === intervalDuration &&
+            inputActiveDuration === activeDuration &&
+            inputFrequency === frequency
+          }
         >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+          Update
+        </button>
       </div>
     </main>
-  );
+  )
 }
